@@ -17,3 +17,4 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 For commercial licensing, please contact support@quantumnous.com
 */
 export { useHomePageContent } from './use-home-page-content'
+export { FALLBACK_HOME_BRAND, useHomeBrand } from './use-home-brand'

@@ -36,6 +36,21 @@
   </head>
 
   <body>
+    <!-- 首屏绘制前写入颜色预设，避免 React 挂载后才切换配色造成闪烁。
+         需与 ThemeCustomizationProvider、DEFAULT_THEME_CUSTOMIZATION.preset、
+         THEME_STORAGE_KEYS.preset 保持一致；非法值由 Provider 挂载后纠正。 -->
+    <script>
+      ;(function () {
+        var preset = null
+        try {
+          preset = localStorage.getItem('newapi:theme:v1:preset')
+        } catch (e) {}
+        preset = preset || 'ocean-breeze'
+        if (preset !== 'default') {
+          document.body.setAttribute('data-theme-preset', preset)
+        }
+      })()
+    </script>
     <div id="root" translate="no" class="notranslate"></div>
   </body>
 </html>

@@ -130,7 +130,8 @@ export function ThemeCustomizationProvider(props: {
   useEffect(() => {
     applyAttribute(
       'data-theme-preset',
-      preset === DEFAULT_THEME_CUSTOMIZATION.preset ? null : preset
+      // 仅 'default' 预设使用基础变量；其余预设（含默认的海风）都需要写入属性
+      preset === 'default' ? null : preset
     )
   }, [preset])
 

@@ -112,7 +112,8 @@ export type ThemeCustomization = {
 }
 
 export const DEFAULT_THEME_CUSTOMIZATION: ThemeCustomization = {
-  preset: 'default',
+  // 默认颜色预设为内置的「海风」
+  preset: 'ocean-breeze',
   font: 'default',
   radius: 'default',
   scale: 'default',

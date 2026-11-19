@@ -16,8 +16,16 @@ along with this program. If not, see <https://www.gnu.org/licenses/>.
 
 For commercial licensing, please contact support@quantumnous.com
 */
-export { CTA } from './sections/cta'
-export { Features } from './sections/features'
-export { Hero } from './sections/hero'
-export { HowItWorks } from './sections/how-it-works'
-export { Stats } from './sections/stats'
+import { DEFAULT_SYSTEM_NAME } from '@/lib/constants'
+import { useSystemConfigStore } from '@/stores/system-config-store'
+
+// 未在后台配置系统名称时使用的首页品牌名
+export const FALLBACK_HOME_BRAND = 'LINGXI AI'
+
+// 首页品牌名：优先使用后台配置的系统名称，未配置（仍为默认值）时回退
+export function useHomeBrand(): string {
+  const systemName = useSystemConfigStore((s) => s.config.systemName)
+  const name = systemName?.trim()
+  if (!name || name === DEFAULT_SYSTEM_NAME) return FALLBACK_HOME_BRAND
+  return name
+}
