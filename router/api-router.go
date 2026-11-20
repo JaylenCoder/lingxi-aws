@@ -150,8 +150,9 @@ func SetApiRouter(router *gin.Engine) {
 				selfRoute.DELETE("/oauth/bindings/:provider_id", controller.UnbindCustomOAuth)
 			}
 
+			// 用户管理仅 root 可访问
 			adminRoute := userRoute.Group("/")
-			adminRoute.Use(middleware.AdminAuth())
+			adminRoute.Use(middleware.RootAuth())
 			{
 				adminRoute.GET("/", controller.GetAllUsers)
 				adminRoute.GET("/topup", controller.GetAllTopUps)
@@ -187,7 +188,8 @@ func SetApiRouter(router *gin.Engine) {
 			subscriptionRoute.POST("/waffo-pancake/pay", middleware.CriticalRateLimit(), controller.SubscriptionRequestWaffoPancakePay)
 		}
 		subscriptionAdminRoute := apiRouter.Group("/subscription/admin")
-		subscriptionAdminRoute.Use(middleware.AdminAuth())
+		// 订阅管理仅 root 可访问
+		subscriptionAdminRoute.Use(middleware.RootAuth())
 		{
 			subscriptionAdminRoute.GET("/plans", controller.AdminListSubscriptionPlans)
 			subscriptionAdminRoute.POST("/plans", controller.AdminCreateSubscriptionPlan)
@@ -316,7 +318,8 @@ func SetApiRouter(router *gin.Engine) {
 		}
 
 		redemptionRoute := apiRouter.Group("/redemption")
-		redemptionRoute.Use(middleware.AdminAuth())
+		// 兑换码管理仅 root 可访问
+		redemptionRoute.Use(middleware.RootAuth())
 		{
 			redemptionRoute.GET("/", controller.GetAllRedemptions)
 			redemptionRoute.GET("/search", controller.SearchRedemptions)
@@ -379,9 +382,10 @@ func SetApiRouter(router *gin.Engine) {
 		prefillGroupRoute.Use(middleware.AdminAuth())
 		{
 			prefillGroupRoute.GET("/", controller.GetPrefillGroups)
-			prefillGroupRoute.POST("/", controller.CreatePrefillGroup)
-			prefillGroupRoute.PUT("/", controller.UpdatePrefillGroup)
-			prefillGroupRoute.DELETE("/:id", controller.DeletePrefillGroup)
+			// 渠道编辑需要读取预填分组；增删改属于模型页面，仅 root 可用
+			prefillGroupRoute.POST("/", middleware.RootAuth(), controller.CreatePrefillGroup)
+			prefillGroupRoute.PUT("/", middleware.RootAuth(), controller.UpdatePrefillGroup)
+			prefillGroupRoute.DELETE("/:id", middleware.RootAuth(), controller.DeletePrefillGroup)
 		}
 
 		mjRoute := apiRouter.Group("/mj")
@@ -396,7 +400,8 @@ func SetApiRouter(router *gin.Engine) {
 		}
 
 		vendorRoute := apiRouter.Group("/vendors")
-		vendorRoute.Use(middleware.AdminAuth())
+		// 模型页面（供应商）仅 root 可访问
+		vendorRoute.Use(middleware.RootAuth())
 		{
 			vendorRoute.POST("/operations/preview", controller.PreviewVendorOperation)
 			vendorRoute.POST("/operations", controller.ApplyVendorOperation)
@@ -409,7 +414,8 @@ func SetApiRouter(router *gin.Engine) {
 		}
 
 		modelsRoute := apiRouter.Group("/models")
-		modelsRoute.Use(middleware.AdminAuth())
+		// 模型页面（元数据）仅 root 可访问
+		modelsRoute.Use(middleware.RootAuth())
 		{
 			modelsRoute.GET("/sync_upstream/preview", controller.SyncUpstreamPreview)
 			modelsRoute.POST("/sync_upstream", controller.SyncUpstreamModels)
@@ -425,7 +431,8 @@ func SetApiRouter(router *gin.Engine) {
 
 		// Deployments (model deployment management)
 		deploymentsRoute := apiRouter.Group("/deployments")
-		deploymentsRoute.Use(middleware.AdminAuth())
+		// 模型页面（部署）仅 root 可访问
+		deploymentsRoute.Use(middleware.RootAuth())
 		{
 			deploymentsRoute.GET("/settings", controller.GetModelDeploymentSettings)
 			deploymentsRoute.POST("/settings/test-connection", controller.TestIoNetConnection)

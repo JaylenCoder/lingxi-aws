@@ -142,21 +142,25 @@ export function useSidebarData(badges: SidebarBadges = {}): SidebarData {
             title: t('Models'),
             url: '/models/metadata',
             icon: Box,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('Users'),
             url: '/users',
             icon: Users,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('Redemption Codes'),
             url: '/redemption-codes',
             icon: Ticket,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('Subscriptions'),
             url: '/subscriptions',
             icon: CreditCard,
+            requiredRole: ROLE.SUPER_ADMIN,
           },
           {
             title: t('System Info'),

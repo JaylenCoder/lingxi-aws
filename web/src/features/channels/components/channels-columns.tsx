@@ -59,6 +59,7 @@ import {
   translateServerText,
 } from '@/lib/server-error-message'
 import { truncateText } from '@/lib/utils'
+import { useAuthStore } from '@/stores/auth-store'
 
 import { getCodexUsage, updateChannelBalance } from '../api'
 import {
@@ -87,6 +88,7 @@ import {
   handleUpdateTagField,
   createChannelFieldUpdateScheduler,
   isTagAggregateRow,
+  canManageChannel,
   type TagRow,
 } from '../lib'
 import {
@@ -201,7 +203,7 @@ function PriorityCell({ channel }: { channel: Channel }) {
 
   return (
     <ChannelFieldCell
-      channelId={channel.id}
+      channel={channel}
       value={channel.priority}
       field='priority'
       min={-999}
@@ -217,6 +219,10 @@ function TagPriorityCell({ channel }: { channel: TagRow }) {
   const [pendingValue, setPendingValue] = useState<number | null>(null)
   const tag = channel.tag || ''
   const channelCount = channel.children?.length || 0
+  const canManage = canManageChannel(
+    channel,
+    useAuthStore((s) => s.auth.user)
+  )
 
   return (
     <>
@@ -227,6 +233,7 @@ function TagPriorityCell({ channel }: { channel: TagRow }) {
           setConfirmOpen(true)
         }}
         min={-999}
+        disabled={!canManage}
       />
       <ConfirmDialog
         open={confirmOpen}
@@ -249,17 +256,23 @@ function TagPriorityCell({ channel }: { channel: TagRow }) {
 }
 
 function ChannelFieldCell({
-  channelId,
+  channel,
   value,
   field,
   min,
 }: {
-  channelId: number
+  channel: Channel
   value: number | null | undefined
   field: 'priority' | 'weight'
   min: number
 }) {
+  const channelId = channel.id
   const queryClient = useQueryClient()
+  // 他人创建的渠道不允许内联修改
+  const canManage = canManageChannel(
+    channel,
+    useAuthStore((s) => s.auth.user)
+  )
   const fieldUpdateScheduler = useMemo(
     () =>
       createChannelFieldUpdateScheduler((nextValue) => {
@@ -276,6 +289,7 @@ function ChannelFieldCell({
       onChange={fieldUpdateScheduler.schedule}
       onCommit={fieldUpdateScheduler.flush}
       min={min}
+      disabled={!canManage}
     />
   )
 }
@@ -290,7 +304,7 @@ function WeightCell({ channel }: { channel: Channel }) {
 
   return (
     <ChannelFieldCell
-      channelId={channel.id}
+      channel={channel}
       value={channel.weight}
       field='weight'
       min={0}
@@ -306,6 +320,10 @@ function TagWeightCell({ channel }: { channel: TagRow }) {
   const [pendingValue, setPendingValue] = useState<number | null>(null)
   const tag = channel.tag || ''
   const channelCount = channel.children?.length || 0
+  const canManage = canManageChannel(
+    channel,
+    useAuthStore((s) => s.auth.user)
+  )
 
   return (
     <>
@@ -316,6 +334,7 @@ function TagWeightCell({ channel }: { channel: TagRow }) {
           setConfirmOpen(true)
         }}
         min={0}
+        disabled={!canManage}
       />
       <ConfirmDialog
         open={confirmOpen}

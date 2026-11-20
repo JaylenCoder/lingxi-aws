@@ -41,6 +41,7 @@ import { cn } from '@/lib/utils'
 import { useAuthStore } from '@/stores/auth-store'
 
 import {
+  canManageChannel,
   handleBatchDelete,
   handleBatchDisable,
   handleBatchEnable,
@@ -61,13 +62,18 @@ export function DataTableBulkActions<TData>({
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false)
   const [tagValue, setTagValue] = useState('')
   const currentUser = useAuthStore((s) => s.auth.user)
-  const canEditSensitive = hasPermission(
-    currentUser,
-    ADMIN_PERMISSION_RESOURCES.CHANNEL,
-    ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
-  )
-
   const selectedRows = table.getFilteredSelectedRowModel().rows
+  // 选中项包含他人创建的渠道时，所有批量修改操作都不可用
+  const canManageSelected = selectedRows.every((row) =>
+    canManageChannel(row.original as Channel, currentUser)
+  )
+  const canEditSensitive =
+    canManageSelected &&
+    hasPermission(
+      currentUser,
+      ADMIN_PERMISSION_RESOURCES.CHANNEL,
+      ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
+    )
   const selectedIds = selectedRows.reduce<number[]>((ids, row) => {
     const id = (row.original as Channel).id
 
@@ -116,6 +122,7 @@ export function DataTableBulkActions<TData>({
                 variant='outline'
                 size='icon'
                 onClick={handleEnableAll}
+                disabled={!canManageSelected}
                 className='size-8'
                 aria-label={t('Enable selected channels')}
                 title={t('Enable selected channels')}
@@ -137,6 +144,7 @@ export function DataTableBulkActions<TData>({
                 variant='outline'
                 size='icon'
                 onClick={handleDisableAll}
+                disabled={!canManageSelected}
                 className='size-8'
                 aria-label={t('Disable selected channels')}
                 title={t('Disable selected channels')}
@@ -158,6 +166,7 @@ export function DataTableBulkActions<TData>({
                 variant='outline'
                 size='icon'
                 onClick={() => setShowTagDialog(true)}
+                disabled={!canManageSelected}
                 className='size-8'
                 aria-label={t('Set tag for selected channels')}
                 title={t('Set tag for selected channels')}

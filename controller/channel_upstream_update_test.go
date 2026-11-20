@@ -604,6 +604,7 @@ func TestDetectAllChannelUpstreamModelUpdatesRejectsExistingActiveTask(t *testin
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/channel/upstream-models/detect-all", nil)
+	ctx.Set("role", common.RoleRootUser)
 
 	DetectAllChannelUpstreamModelUpdates(ctx)
 

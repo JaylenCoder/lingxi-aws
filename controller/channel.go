@@ -376,6 +376,9 @@ func FetchUpstreamModels(c *gin.Context) {
 }
 
 func FixChannelsAbilities(c *gin.Context) {
+	if !ensureRootChannelOperation(c) {
+		return
+	}
 	success, fails, err := model.FixAbility()
 	if err != nil {
 		common.ApiError(c, err)
@@ -747,6 +750,9 @@ func RefreshCodexChannelCredential(c *gin.Context) {
 		common.ApiError(c, fmt.Errorf("invalid channel id: %w", err))
 		return
 	}
+	if !ensureChannelOwner(c, channelId) {
+		return
+	}
 
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 10*time.Second)
 	defer cancel()
@@ -856,6 +862,7 @@ func AddChannel(c *gin.Context) {
 	}
 
 	addChannelRequest.Channel.CreatedTime = common.GetTimestamp()
+	addChannelRequest.Channel.CreatedBy = c.GetInt("id")
 	keys := make([]string, 0)
 	inputIndices := make([]int, 0)
 	switch addChannelRequest.Mode {
@@ -971,6 +978,9 @@ func AddChannel(c *gin.Context) {
 
 func DeleteChannel(c *gin.Context) {
 	id, _ := strconv.Atoi(c.Param("id"))
+	if !ensureChannelOwner(c, id) {
+		return
+	}
 	channelName := ""
 	channelProxy := ""
 	channelLookupFailed := false
@@ -1009,6 +1019,9 @@ func DeleteChannel(c *gin.Context) {
 }
 
 func DeleteDisabledChannel(c *gin.Context) {
+	if !ensureRootChannelOperation(c) {
+		return
+	}
 	var ids []int
 	if err := model.DB.Model(&model.Channel{}).
 		Where("status = ? or status = ?", common.ChannelStatusAutoDisabled, common.ChannelStatusManuallyDisabled).
@@ -1063,6 +1076,9 @@ func DisableTagChannels(c *gin.Context) {
 		common.ApiErrorT(c, "Invalid parameters")
 		return
 	}
+	if !ensureChannelTagOwner(c, channelTag.Tag) {
+		return
+	}
 	channels, err := model.GetChannelsByTag(channelTag.Tag, false, false)
 	if err != nil {
 		common.ApiError(c, err)
@@ -1093,6 +1109,9 @@ func EnableTagChannels(c *gin.Context) {
 		common.ApiErrorT(c, "Invalid parameters")
 		return
 	}
+	if !ensureChannelTagOwner(c, channelTag.Tag) {
+		return
+	}
 	err = model.EnableChannelByTag(channelTag.Tag)
 	if err != nil {
 		common.ApiError(c, err)
@@ -1118,6 +1137,9 @@ func EditTagChannels(c *gin.Context) {
 	}
 	if channelTag.Tag == "" {
 		common.ApiErrorT(c, "Tag cannot be empty")
+		return
+	}
+	if !ensureChannelTagOwner(c, channelTag.Tag) {
 		return
 	}
 	if (channelTag.ParamOverride != nil || channelTag.HeaderOverride != nil) &&
@@ -1167,6 +1189,9 @@ func DeleteChannelBatch(c *gin.Context) {
 	err := c.ShouldBindJSON(&channelBatch)
 	if err != nil || len(channelBatch.Ids) == 0 {
 		common.ApiErrorT(c, "Invalid parameters")
+		return
+	}
+	if !ensureChannelOwner(c, channelBatch.Ids...) {
 		return
 	}
 	var revoked []*model.Channel
@@ -1253,6 +1278,9 @@ func UpdateChannel(c *gin.Context) {
 	originChannel, err := model.GetChannelById(channel.Id, true)
 	if err != nil {
 		common.ApiError(c, err)
+		return
+	}
+	if !ensureChannelOwner(c, originChannel.Id) {
 		return
 	}
 	originProxy := originChannel.GetSetting().Proxy
@@ -1495,6 +1523,9 @@ func UpdateChannelStatus(c *gin.Context) {
 		common.ApiErrorT(c, "Invalid parameters")
 		return
 	}
+	if !ensureChannelOwner(c, id) {
+		return
+	}
 	changed := model.UpdateChannelStatus(id, "", req.Status, "manual operation")
 	if changed {
 		model.InitChannelCache()
@@ -1518,6 +1549,9 @@ func BatchUpdateChannelStatus(c *gin.Context) {
 	req := ChannelStatusBatchRequest{}
 	if err := c.ShouldBindJSON(&req); err != nil || len(req.Ids) == 0 || !isManageableChannelStatus(req.Status) {
 		common.ApiErrorT(c, "Invalid parameters")
+		return
+	}
+	if !ensureChannelOwner(c, req.Ids...) {
 		return
 	}
 	changedCount := 0
@@ -1751,6 +1785,9 @@ func BatchSetChannelTag(c *gin.Context) {
 		common.ApiErrorT(c, "Invalid parameters")
 		return
 	}
+	if !ensureChannelOwner(c, channelBatch.Ids...) {
+		return
+	}
 	err = model.BatchSetChannelTag(channelBatch.Ids, channelBatch.Tag)
 	if err != nil {
 		common.ApiError(c, err)
@@ -1818,6 +1855,9 @@ func CopyChannel(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"success": false, "message": "invalid id"})
 		return
 	}
+	if !ensureChannelOwner(c, id) {
+		return
+	}
 
 	suffix := c.DefaultQuery("suffix", "_copy")
 	resetBalance := true
@@ -1844,6 +1884,7 @@ func CopyChannel(c *gin.Context) {
 	clone := *origin // shallow copy is sufficient as we will overwrite primitives
 	clone.Id = 0     // let DB auto-generate
 	clone.CreatedTime = common.GetTimestamp()
+	clone.CreatedBy = c.GetInt("id")
 	clone.Name = origin.Name + suffix
 	clone.TestTime = 0
 	clone.ResponseTime = 0
@@ -1934,6 +1975,9 @@ func ManageMultiKeys(c *gin.Context) {
 	if multiKeyActionRequiresSensitiveWrite(request.Action) &&
 		!authz.Can(c.GetInt("id"), c.GetInt("role"), authz.ChannelSensitiveWrite) {
 		common.ApiErrorT(c, "Unauthorized, insufficient privileges")
+		return
+	}
+	if request.Action != "get_key_status" && !ensureChannelOwner(c, channel.Id) {
 		return
 	}
 
@@ -2376,6 +2420,9 @@ func OllamaPullModel(c *gin.Context) {
 		})
 		return
 	}
+	if !ensureChannelOwner(c, req.ChannelID) {
+		return
+	}
 
 	// 获取渠道信息
 	channel, err := model.GetChannelById(req.ChannelID, true)
@@ -2437,6 +2484,9 @@ func OllamaPullModelStream(c *gin.Context) {
 			"success": false,
 			"message": "Channel ID and model name are required",
 		})
+		return
+	}
+	if !ensureChannelOwner(c, req.ChannelID) {
 		return
 	}
 
@@ -2519,6 +2569,9 @@ func OllamaDeleteModel(c *gin.Context) {
 			"success": false,
 			"message": "Channel ID and model name are required",
 		})
+		return
+	}
+	if !ensureChannelOwner(c, req.ChannelID) {
 		return
 	}
 

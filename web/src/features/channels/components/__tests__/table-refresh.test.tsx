@@ -52,6 +52,7 @@ function channel(name: string): Channel {
     status: 1,
     name,
     created_time: 0,
+    created_by: 0,
     test_time: 0,
     response_time: 0,
     other: '',

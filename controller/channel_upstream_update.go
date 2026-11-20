@@ -973,6 +973,9 @@ func ApplyChannelUpstreamModelUpdates(c *gin.Context) {
 		common.ApiError(c, err)
 		return
 	}
+	if !ensureChannelOwner(c, channel.Id) {
+		return
+	}
 	beforeSettings := channel.GetOtherSettings()
 	ignoredModels := intersectModelNames(req.IgnoreModels, beforeSettings.UpstreamModelUpdateLastDetectedModels)
 
@@ -1027,6 +1030,9 @@ func DetectChannelUpstreamModelUpdates(c *gin.Context) {
 	channel, err := model.GetChannelById(req.ID, true)
 	if err != nil {
 		common.ApiError(c, err)
+		return
+	}
+	if !ensureChannelOwner(c, channel.Id) {
 		return
 	}
 
@@ -1124,6 +1130,9 @@ func findEnabledChannelsAfterID(lastID int, batchSize int) ([]*model.Channel, er
 }
 
 func ApplyAllChannelUpstreamModelUpdates(c *gin.Context) {
+	if !ensureRootChannelOperation(c) {
+		return
+	}
 	results := make([]applyAllChannelUpstreamModelUpdatesResult, 0)
 	failed := make([]int, 0)
 	refreshNeeded := false
@@ -1214,6 +1223,9 @@ func ApplyAllChannelUpstreamModelUpdates(c *gin.Context) {
 // manual run is rejected so the caller does not mistake a scheduled run for this
 // manual one.
 func DetectAllChannelUpstreamModelUpdates(c *gin.Context) {
+	if !ensureRootChannelOperation(c) {
+		return
+	}
 	task, created, err := service.EnqueueSystemTask(model.SystemTaskTypeModelUpdate, modelUpdateTaskPayload{Manual: true})
 	if err != nil {
 		common.ApiError(c, err)

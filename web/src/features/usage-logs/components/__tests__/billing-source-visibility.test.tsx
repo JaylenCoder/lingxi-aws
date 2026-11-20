@@ -129,10 +129,10 @@ afterEach(() => {
 })
 
 test.each([{ enabledPlans: [] }, { enabledPlans: [false] }])(
-  'hides the wallet icon in admin view when no plan is enabled but keeps the subscription marker ($enabledPlans)',
+  'hides the wallet icon in root view when no plan is enabled but keeps the subscription marker ($enabledPlans)',
   async ({ enabledPlans }) => {
     await renderLogs({
-      role: ROLE.ADMIN,
+      role: ROLE.SUPER_ADMIN,
       enabledPlans,
       activeSubscription: true,
     })
@@ -144,14 +144,26 @@ test.each([{ enabledPlans: [] }, { enabledPlans: [false] }])(
   }
 )
 
-test('shows both source icons in admin view when any system plan is enabled', async () => {
+test('shows both source icons in root view when any system plan is enabled', async () => {
   await renderLogs({
-    role: ROLE.ADMIN,
+    role: ROLE.SUPER_ADMIN,
     enabledPlans: [false, true],
     activeSubscription: false,
   })
 
   expect(screen.getByRole('img', { name: 'Wallet' })).toBeVisible()
+  expect(screen.getByRole('img', { name: 'Subscription' })).toBeVisible()
+})
+
+// 套餐管理接口仅 root 可用，普通管理员按自己的订阅判断
+test('uses personal subscriptions for a non-root admin', async () => {
+  await renderLogs({
+    role: ROLE.ADMIN,
+    enabledPlans: [true],
+    activeSubscription: false,
+  })
+
+  expect(screen.queryByRole('img', { name: 'Wallet' })).not.toBeInTheDocument()
   expect(screen.getByRole('img', { name: 'Subscription' })).toBeVisible()
 })
 
@@ -177,10 +189,10 @@ test('shows both source icons for a user with an active subscription', async () 
   expect(screen.getByRole('img', { name: 'Subscription' })).toBeVisible()
 })
 
-test('uses personal subscriptions when an admin switches to only-self view', async () => {
+test('uses personal subscriptions when root switches to only-self view', async () => {
   const user = userEvent.setup()
   const client = await renderLogs({
-    role: ROLE.ADMIN,
+    role: ROLE.SUPER_ADMIN,
     enabledPlans: [true],
     activeSubscription: false,
   })

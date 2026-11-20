@@ -828,6 +828,9 @@ func updateAllChannelsBalance(ctx context.Context, report func(processed, total 
 // and answers at once with its task id. When one is already queued or
 // running, it answers with that one, and started is false.
 func UpdateAllChannelsBalance(c *gin.Context) {
+	if !ensureRootChannelOperation(c) {
+		return
+	}
 	task, created, err := service.EnqueueSystemTask(model.SystemTaskTypeChannelBalance, nil)
 	if err != nil {
 		common.ApiError(c, err)

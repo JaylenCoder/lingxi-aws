@@ -187,6 +187,7 @@ import {
   hasModelConfigChanged,
   findMissingModelsInMapping,
   validateModelMappingJson,
+  canManageChannel,
 } from '../../lib'
 import {
   getChannelConfigurationSection,
@@ -451,16 +452,23 @@ export function ChannelMutateDrawer({
   const queryClient = useQueryClient()
   const { setOpen } = useChannels()
   const currentUser = useAuthStore((s) => s.auth.user)
-  const canEditSensitive = hasPermission(
-    currentUser,
-    ADMIN_PERMISSION_RESOURCES.CHANNEL,
-    ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
-  )
-  const canOperateChannel = hasPermission(
-    currentUser,
-    ADMIN_PERMISSION_RESOURCES.CHANNEL,
-    ADMIN_PERMISSION_ACTIONS.OPERATE
-  )
+  // 他人创建的渠道只能查看，不能保存或修改
+  const readOnlyChannel =
+    !!currentRow && !canManageChannel(currentRow, currentUser)
+  const canEditSensitive =
+    !readOnlyChannel &&
+    hasPermission(
+      currentUser,
+      ADMIN_PERMISSION_RESOURCES.CHANNEL,
+      ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
+    )
+  const canOperateChannel =
+    !readOnlyChannel &&
+    hasPermission(
+      currentUser,
+      ADMIN_PERMISSION_RESOURCES.CHANNEL,
+      ADMIN_PERMISSION_ACTIONS.OPERATE
+    )
   const canBindTaskPlugin = hasPermission(
     currentUser,
     ADMIN_PERMISSION_RESOURCES.TASK_PLUGIN,
@@ -1723,6 +1731,7 @@ export function ChannelMutateDrawer({
   const onSubmit = useCallback(
     async (data: ChannelFormValues) => {
       if (isEditing && !channelData?.data) return
+      if (readOnlyChannel) return
       if (!isEditing && (!providerTarget || !canEditSensitive)) return
       // Validate key is required when creating
       if (!isEditing && !pluginLogin && !data.key?.trim()) {
@@ -1882,6 +1891,7 @@ export function ChannelMutateDrawer({
       providerTarget,
       canEditSensitive,
       sensitiveLocked,
+      readOnlyChannel,
       channelData,
       form,
       confirmMissingModelMappings,
@@ -5234,7 +5244,15 @@ export function ChannelMutateDrawer({
             />
           )}
 
-          {sensitiveLocked && (
+          {readOnlyChannel && (
+            <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
+              <AlertDescription>
+                {t('No permission to perform this action')}
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {sensitiveLocked && !readOnlyChannel && (
             <Alert className='border-amber-200 bg-amber-50 text-amber-900 dark:border-amber-500/40 dark:bg-amber-500/10 dark:text-amber-50'>
               <AlertDescription>
                 {t(
@@ -5315,6 +5333,7 @@ export function ChannelMutateDrawer({
                 type='submit'
                 disabled={
                   isSubmitting ||
+                  readOnlyChannel ||
                   (!isEditing && !canEditSensitive) ||
                   (isEditing && !channelData?.data)
                 }

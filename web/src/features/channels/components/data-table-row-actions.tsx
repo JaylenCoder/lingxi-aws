@@ -21,6 +21,7 @@ import type { Row } from '@tanstack/react-table'
 import {
   MoreHorizontal,
   Boxes,
+  Eye,
   Pencil,
   PlugZap,
   Gauge,
@@ -64,6 +65,7 @@ import {
   useChannelModelFetchable,
 } from '../hooks/use-task-plugin-option'
 import {
+  canManageChannel,
   channelsQueryKeys,
   handleDeleteChannel,
   handleTestChannel,
@@ -94,11 +96,15 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
 
   const isEnabled = isChannelEnabled(channel)
   const isMultiKey = isMultiKeyChannel(channel)
-  const canEditSensitive = hasPermission(
-    currentUser,
-    ADMIN_PERMISSION_RESOURCES.CHANNEL,
-    ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
-  )
+  // 他人创建的渠道只能查看和测试
+  const canManage = canManageChannel(channel, currentUser)
+  const canEditSensitive =
+    canManage &&
+    hasPermission(
+      currentUser,
+      ADMIN_PERMISSION_RESOURCES.CHANNEL,
+      ADMIN_PERMISSION_ACTIONS.SENSITIVE_WRITE
+    )
 
   const handleEdit = () => {
     setCurrentRow(channel)
@@ -179,13 +185,17 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
                   e.stopPropagation()
                   handleEdit()
                 }}
-                aria-label={t('Edit')}
+                aria-label={canManage ? t('Edit') : t('View details')}
               />
             }
           >
-            <Pencil className='size-4' />
+            {canManage ? (
+              <Pencil className='size-4' />
+            ) : (
+              <Eye className='size-4' />
+            )}
           </TooltipTrigger>
-          <TooltipContent>{t('Edit')}</TooltipContent>
+          <TooltipContent>{canManage ? t('Edit') : t('View details')}</TooltipContent>
         </Tooltip>
       )}
 
@@ -238,7 +248,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
               variant='ghost'
               size='icon-sm'
               onClick={handleToggleStatus}
-              disabled={isTogglingStatus}
+              disabled={isTogglingStatus || !canManage}
               aria-label={isEnabled ? t('Disable') : t('Enable')}
               className={
                 isEnabled
@@ -270,9 +280,9 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         <DropdownMenuContent align='end' className='w-48'>
           {layout === 'card' && (
             <DropdownMenuItem onClick={handleEdit}>
-              {t('Edit')}
+              {canManage ? t('Edit') : t('View details')}
               <DropdownMenuShortcut>
-                <Pencil size={16} />
+                {canManage ? <Pencil size={16} /> : <Eye size={16} />}
               </DropdownMenuShortcut>
             </DropdownMenuItem>
           )}
@@ -304,7 +314,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           </DropdownMenuItem>
 
           {/* Detect Upstream Updates (only for fetchable channel types) */}
-          {modelFetchable && (
+          {modelFetchable && canManage && (
             <DropdownMenuItem
               onClick={() => upstream.detectChannelUpdates(channel)}
             >
@@ -316,7 +326,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           )}
 
           {/* Ollama Models (only for Ollama channels) */}
-          {channel.type === 4 && (
+          {channel.type === 4 && canManage && (
             <DropdownMenuItem onClick={handleManageOllamaModels}>
               {t('Manage Ollama Models')}
               <DropdownMenuShortcut>
@@ -344,7 +354,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
           )}
 
           {/* Manage Keys (only for multi-key channels) */}
-          {isMultiKey && (
+          {isMultiKey && canManage && (
             <DropdownMenuItem onClick={handleManageKeys}>
               {t('Manage Keys')}
               <DropdownMenuShortcut>

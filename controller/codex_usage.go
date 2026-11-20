@@ -36,6 +36,10 @@ func GetCodexChannelRateLimitResetCredits(c *gin.Context) {
 }
 
 func ResetCodexChannelUsage(c *gin.Context) {
+	channelID, _ := strconv.Atoi(c.Param("id"))
+	if !ensureChannelOwner(c, channelID) {
+		return
+	}
 	fetchCodexChannelWhamData(
 		c,
 		service.ConsumeCodexWhamRateLimitResetCredit,

@@ -18,6 +18,7 @@ For commercial licensing, please contact support@quantumnous.com
 */
 import { formatCurrencyFromUSD, formatQuotaWithCurrency } from '@/lib/currency'
 import { formatTimestampToDate } from '@/lib/format'
+import { ROLE } from '@/lib/roles'
 
 import {
   CHANNEL_STATUS_CONFIG,
@@ -161,6 +162,24 @@ export function isChannelEnabled(channel: Channel): boolean {
  */
 export function isMultiKeyChannel(channel: Channel): boolean {
   return channel.channel_info?.is_multi_key || false
+}
+
+/**
+ * 非 root 管理员只能修改自己创建的渠道；标签聚合行要求其下全部渠道都属于自己
+ */
+export function canManageChannel(
+  channel: Channel | TagRow,
+  user: { id: number; role: number } | null | undefined
+): boolean {
+  if (!user) return false
+  if (user.role === ROLE.SUPER_ADMIN) return true
+  if (isTagAggregateRow(channel)) {
+    return (
+      channel.children.length > 0 &&
+      channel.children.every((child) => child.created_by === user.id)
+    )
+  }
+  return channel.created_by === user.id
 }
 
 // ============================================================================

@@ -3,6 +3,7 @@ package controller
 import (
 	"fmt"
 	"net/http"
+	"net/http/httptest"
 	"os"
 	"path/filepath"
 	"strings"
@@ -11,6 +12,7 @@ import (
 	"github.com/QuantumNous/new-api/common"
 	"github.com/QuantumNous/new-api/constant"
 	"github.com/QuantumNous/new-api/model"
+	"github.com/gin-gonic/gin"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"gorm.io/gorm"
@@ -257,4 +259,67 @@ func TestAddChannelPanicRollsBackWithoutSuccess(t *testing.T) {
 	require.NoError(t, database.Model(&model.Ability{}).Count(&abilities).Error)
 	assert.Zero(t, channels)
 	assert.Zero(t, abilities)
+}
+
+// TestChannelOwnershipLimitsAdminWrites 校验：创建时记录创建人；非 root 管理员只能修改、删除自己创建的渠道，root 不受限制。
+func TestChannelOwnershipLimitsAdminWrites(t *testing.T) {
+	rootID := setupChannelCreateTest(t)
+	const adminID, otherAdminID = 9001, 9002
+	call := func(userID, role int, method, path string, body string, params gin.Params, handler gin.HandlerFunc) (bool, string) {
+		recorder := httptest.NewRecorder()
+		ctx, _ := gin.CreateTestContext(recorder)
+		ctx.Set("id", userID)
+		ctx.Set("role", role)
+		ctx.Params = params
+		ctx.Request = httptest.NewRequest(method, path, strings.NewReader(body))
+		ctx.Request.Header.Set("Content-Type", "application/json")
+		handler(ctx)
+		var response struct {
+			Success bool   `json:"success"`
+			Message string `json:"message"`
+		}
+		require.NoError(t, common.Unmarshal(recorder.Body.Bytes(), &response))
+		return response.Success, response.Message
+	}
+
+	request, err := common.Marshal(AddChannelRequest{Mode: "single", Channel: &model.Channel{Name: "owned-by-admin", Type: constant.ChannelTypeOpenAI, Key: "sk-owner", Models: "test-model", Group: "default"}})
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, postAddChannel(t, adminID, common.RoleAdminUser, string(request)).Code)
+	var owned model.Channel
+	require.NoError(t, model.DB.Where("name = ?", "owned-by-admin").First(&owned).Error)
+	assert.Equal(t, adminID, owned.CreatedBy)
+	t.Cleanup(func() { _, _ = model.BatchDeleteChannels([]int{owned.Id}) })
+
+	idParam := gin.Params{{Key: "id", Value: fmt.Sprint(owned.Id)}}
+	statusBody := `{"status":2}`
+	updateBody := fmt.Sprintf(`{"id":%d,"priority":5}`, owned.Id)
+
+	// 其他管理员：即使拥有写权限也不能修改、改状态、删除
+	ok, message := call(otherAdminID, common.RoleAdminUser, http.MethodPut, "/api/channel/", updateBody, nil, UpdateChannel)
+	assert.False(t, ok)
+	assert.Equal(t, "Unauthorized, insufficient privileges", message)
+	ok, _ = call(otherAdminID, common.RoleAdminUser, http.MethodPost, "/api/channel/x/status", statusBody, idParam, UpdateChannelStatus)
+	assert.False(t, ok)
+	ok, _ = call(otherAdminID, common.RoleAdminUser, http.MethodPost, "/api/channel/batch", fmt.Sprintf(`{"ids":[%d]}`, owned.Id), nil, DeleteChannelBatch)
+	assert.False(t, ok)
+	ok, _ = call(otherAdminID, common.RoleAdminUser, http.MethodDelete, "/api/channel/x", "", idParam, DeleteChannel)
+	assert.False(t, ok)
+	ok, _ = call(adminID, common.RoleAdminUser, http.MethodDelete, "/api/channel/disabled", "", nil, DeleteDisabledChannel)
+	assert.False(t, ok, "全量操作仅 root 可执行")
+	require.NoError(t, model.DB.First(&owned, owned.Id).Error)
+	assert.Equal(t, common.ChannelStatusEnabled, owned.Status)
+
+	// 创建人可以修改；创建人字段不能通过编辑接口篡改
+	ok, message = call(adminID, common.RoleAdminUser, http.MethodPut, "/api/channel/", fmt.Sprintf(`{"id":%d,"priority":5,"created_by":%d}`, owned.Id, otherAdminID), nil, UpdateChannel)
+	require.True(t, ok, message)
+	require.NoError(t, model.DB.First(&owned, owned.Id).Error)
+	assert.EqualValues(t, 5, *owned.Priority)
+	assert.Equal(t, adminID, owned.CreatedBy)
+
+	// root 可以修改任意渠道
+	ok, message = call(rootID, common.RoleRootUser, http.MethodPost, "/api/channel/x/status", statusBody, idParam, UpdateChannelStatus)
+	require.True(t, ok, message)
+	ok, message = call(rootID, common.RoleRootUser, http.MethodDelete, "/api/channel/x", "", idParam, DeleteChannel)
+	require.True(t, ok, message)
+	assert.ErrorIs(t, model.DB.First(&model.Channel{}, owned.Id).Error, gorm.ErrRecordNotFound)
 }

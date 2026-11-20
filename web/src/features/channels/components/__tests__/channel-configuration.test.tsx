@@ -2201,6 +2201,8 @@ test('an operator without sensitive write permission can discover saved models a
       },
     },
   })
+  // 普通管理员只能修改自己创建的渠道
+  editingChannel.created_by = 10
   const put = vi
     .spyOn(api, 'put')
     .mockResolvedValue({ data: { success: true } })
@@ -2243,6 +2245,39 @@ test('an operator without sensitive write permission can discover saved models a
   expect(put.mock.calls[0]?.[1]).toMatchObject({ id: 42, priority: 8 })
   expect(put.mock.calls[0]?.[1]).not.toHaveProperty('setting')
   expect(put.mock.calls[0]?.[1]).not.toHaveProperty('key')
+})
+
+test('an admin cannot save a channel created by another admin even with write permissions', async () => {
+  useAuthStore.setState({
+    auth: {
+      ...originalAuth,
+      user: {
+        id: 10,
+        username: 'operator',
+        role: ROLE.ADMIN,
+        permissions: {
+          admin_permissions: {
+            channel: {
+              read: true,
+              write: true,
+              operate: true,
+              sensitive_write: true,
+            },
+          },
+        },
+      },
+    },
+  })
+  editingChannel.created_by = 11
+  const put = vi.spyOn(api, 'put')
+  render(<ConfigurationHarness currentRow={editingChannel} />)
+  await screen.findByDisplayValue('Existing channel')
+  expect(
+    screen.getAllByText('No permission to perform this action')[0]
+  ).toBeVisible()
+  expect(screen.getByRole('button', { name: 'Update Channel' })).toBeDisabled()
+  expect(screen.getByLabelText('API Key *')).toBeDisabled()
+  expect(put).not.toHaveBeenCalled()
 })
 
 test.each([

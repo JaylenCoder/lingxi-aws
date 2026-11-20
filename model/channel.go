@@ -57,6 +57,8 @@ type Channel struct {
 	Remark            *string `json:"remark" gorm:"type:varchar(255)" validate:"max=255"`
 	// add after v0.8.5
 	ChannelInfo ChannelInfo `json:"channel_info" gorm:"type:json"`
+	// 创建该渠道的用户 ID；0 表示历史渠道或系统创建，仅 root 可修改
+	CreatedBy int `json:"created_by" gorm:"default:0;index"`
 
 	OtherSettings string `json:"settings" gorm:"column:settings"` // 其他设置，存储azure版本等不需要检索的信息，详见dto.ChannelOtherSettings
 
@@ -1087,6 +1089,37 @@ func updateChannelUsedQuota(id int, quota int) {
 func DeleteChannelByStatus(status int64) (int64, error) {
 	result := DB.Where("status = ?", status).Delete(&Channel{})
 	return result.RowsAffected, result.Error
+}
+
+// ChannelsOwnedBy 判断 ids 中的每个渠道是否都由 userID 创建。
+func ChannelsOwnedBy(ids []int, userID int) (bool, error) {
+	unique := make([]int, 0, len(ids))
+	for _, id := range ids {
+		if !slices.Contains(unique, id) {
+			unique = append(unique, id)
+		}
+	}
+	if len(unique) == 0 || userID <= 0 {
+		return false, nil
+	}
+	var count int64
+	err := DB.Model(&Channel{}).Where("id IN ? AND created_by = ?", unique, userID).Count(&count).Error
+	return count == int64(len(unique)), err
+}
+
+// ChannelTagOwnedBy 判断标签下是否存在渠道，且全部由 userID 创建。
+func ChannelTagOwnedBy(tag string, userID int) (bool, error) {
+	if tag == "" || userID <= 0 {
+		return false, nil
+	}
+	var total, foreign int64
+	if err := DB.Model(&Channel{}).Where("tag = ?", tag).Count(&total).Error; err != nil {
+		return false, err
+	}
+	if err := DB.Model(&Channel{}).Where("tag = ? AND created_by <> ?", tag, userID).Count(&foreign).Error; err != nil {
+		return false, err
+	}
+	return total > 0 && foreign == 0, nil
 }
 
 func DeleteDisabledChannel() (int64, error) {

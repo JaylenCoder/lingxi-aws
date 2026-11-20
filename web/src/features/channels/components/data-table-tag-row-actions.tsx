@@ -33,8 +33,14 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from '@/components/ui/tooltip'
+import { useAuthStore } from '@/stores/auth-store'
 
-import { handleEnableTagChannels, handleDisableTagChannels } from '../lib'
+import {
+  canManageChannel,
+  handleEnableTagChannels,
+  handleDisableTagChannels,
+  type TagRow,
+} from '../lib'
 import type { Channel } from '../types'
 import { useChannels } from './channels-provider'
 
@@ -47,8 +53,11 @@ export function DataTableTagRowActions({ row }: DataTableTagRowActionsProps) {
   const tag = row.original.tag
   const { setOpen, setCurrentTag } = useChannels()
   const queryClient = useQueryClient()
+  const currentUser = useAuthStore((s) => s.auth.user)
+  // 标签下存在他人创建的渠道时不能批量修改
+  const canManage = canManageChannel(row.original as TagRow, currentUser)
 
-  if (!tag) return null
+  if (!tag || !canManage) return null
 
   const handleEnableAll = () => {
     handleEnableTagChannels(tag, queryClient)

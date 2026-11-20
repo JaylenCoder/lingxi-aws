@@ -25,6 +25,8 @@ import type { NavGroup } from '@/components/layout/types'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { CacheStatsDialog } from '@/features/system-settings/general/channel-affinity/cache-stats-dialog'
 import { useSidebarConfig } from '@/hooks/use-sidebar-config'
+import { ROLE } from '@/lib/roles'
+import { useAuthStore } from '@/stores/auth-store'
 
 import { UserInfoDialog } from './components/dialogs/user-info-dialog'
 import {
@@ -72,6 +74,10 @@ function UsageLogsContent() {
     setAffinityDialogOpen,
   } = useUsageLogsContext()
   const { canManageScope, viewScope, setViewScope } = useLogsViewScope()
+  // 用户详情接口仅 root 可访问
+  const isRootUser = useAuthStore(
+    (state) => state.auth.user?.role === ROLE.SUPER_ADMIN
+  )
   const tabNavGroups = useMemo<NavGroup[]>(
     () => [
       {
@@ -160,7 +166,7 @@ function UsageLogsContent() {
 
       <UserInfoDialog
         userId={selectedUserId}
-        open={userInfoDialogOpen}
+        open={userInfoDialogOpen && isRootUser}
         onOpenChange={setUserInfoDialogOpen}
       />
 

@@ -1,6 +1,53 @@
 package controller
 
-import "github.com/QuantumNous/new-api/model"
+import (
+	"github.com/QuantumNous/new-api/common"
+	"github.com/QuantumNous/new-api/model"
+	"github.com/gin-gonic/gin"
+)
+
+// ensureChannelOwner 限制非 root 管理员只能修改自己创建的渠道，即使拥有渠道写权限也不能修改他人渠道。
+func ensureChannelOwner(c *gin.Context, ids ...int) bool {
+	if c.GetInt("role") >= common.RoleRootUser {
+		return true
+	}
+	owned, err := model.ChannelsOwnedBy(ids, c.GetInt("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return false
+	}
+	if !owned {
+		common.ApiErrorT(c, "Unauthorized, insufficient privileges")
+		return false
+	}
+	return true
+}
+
+// ensureChannelTagOwner 要求标签下的全部渠道都由当前管理员创建，root 不受限制。
+func ensureChannelTagOwner(c *gin.Context, tag string) bool {
+	if c.GetInt("role") >= common.RoleRootUser {
+		return true
+	}
+	owned, err := model.ChannelTagOwnedBy(tag, c.GetInt("id"))
+	if err != nil {
+		common.ApiError(c, err)
+		return false
+	}
+	if !owned {
+		common.ApiErrorT(c, "Unauthorized, insufficient privileges")
+		return false
+	}
+	return true
+}
+
+// ensureRootChannelOperation 限制会作用于全部渠道的操作仅 root 可执行。
+func ensureRootChannelOperation(c *gin.Context) bool {
+	if c.GetInt("role") >= common.RoleRootUser {
+		return true
+	}
+	common.ApiErrorT(c, "Unauthorized, insufficient privileges")
+	return false
+}
 
 func channelHasSensitiveChanges(channel *PatchChannel, origin *model.Channel, requestData map[string]any) bool {
 	if _, ok := requestData["type"]; ok && channel.Type != origin.Type {
@@ -89,6 +136,7 @@ var channelReadOnlyFields = map[string]struct{}{
 	"balance_updated_time": {},
 	"used_quota":           {},
 	"balance_detail":       {},
+	"created_by":           {},
 }
 
 func clearChannelReadOnlyFields(channel *PatchChannel, requestData map[string]any) {
@@ -113,6 +161,8 @@ func clearChannelReadOnlyFields(channel *PatchChannel, requestData map[string]an
 	if _, ok := requestData["balance_detail"]; ok {
 		channel.BalanceDetail = nil
 	}
+	// 创建人不允许通过编辑接口修改
+	channel.CreatedBy = 0
 }
 
 // channelNonSensitiveFields lists routing / server-managed channel

@@ -181,6 +181,7 @@ func TestCopyChannelRejectsInvalidLegacyProxySettings(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Params = gin.Params{{Key: "id", Value: fmt.Sprintf("%d", origin.Id)}}
+	ctx.Set("role", common.RoleRootUser)
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/channel/copy", nil)
 
 	CopyChannel(ctx)
@@ -204,6 +205,7 @@ func TestDeleteChannelResetsProxyCacheWhenPreReadFails(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Params = gin.Params{{Key: "id", Value: "999999"}}
+	ctx.Set("role", common.RoleRootUser)
 	ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/channel/999999", nil)
 
 	DeleteChannel(ctx)
@@ -225,6 +227,7 @@ func TestDeleteChannelBatchReportsAndAuditsActualDeletedCount(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodDelete, "/api/channel/batch", bytes.NewReader(requestBody))
+	ctx.Set("role", common.RoleRootUser)
 	ctx.Request.Header.Set("Content-Type", "application/json")
 
 	DeleteChannelBatch(ctx)
@@ -486,6 +489,7 @@ func TestTestAllChannelsRejectsExistingActiveTask(t *testing.T) {
 	recorder := httptest.NewRecorder()
 	ctx, _ := gin.CreateTestContext(recorder)
 	ctx.Request = httptest.NewRequest(http.MethodPost, "/api/channel/test", nil)
+	ctx.Set("role", common.RoleRootUser)
 
 	TestAllChannels(ctx)
 

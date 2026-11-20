@@ -207,3 +207,101 @@ func TestChannelPriorityDatabaseMatrix(t *testing.T) {
 		})
 	}
 }
+
+// TestChannelOwnershipDatabaseMatrix 校验渠道创建人字段的迁移与所有权判断在三种数据库上一致。
+func TestChannelOwnershipDatabaseMatrix(t *testing.T) {
+	for _, dialect := range []string{"sqlite", "mysql", "postgres"} {
+		t.Run(dialect, func(t *testing.T) {
+			var driver gorm.Dialector
+			switch dialect {
+			case "sqlite":
+				driver = sqlite.Open(":memory:")
+			case "mysql":
+				dsn := os.Getenv("TEST_MYSQL_DSN")
+				if dsn == "" {
+					t.Skip("TEST_MYSQL_DSN not configured")
+				}
+				driver = mysql.Open(dsn)
+			case "postgres":
+				dsn := os.Getenv("TEST_POSTGRES_DSN")
+				if dsn == "" {
+					t.Skip("TEST_POSTGRES_DSN not configured")
+				}
+				driver = postgres.Open(dsn)
+			}
+			db, err := gorm.Open(driver, &gorm.Config{NamingStrategy: schema.NamingStrategy{TablePrefix: "owner_test_"}})
+			require.NoError(t, err)
+			sqlDB, err := db.DB()
+			require.NoError(t, err)
+			sqlDB.SetMaxOpenConns(1)
+			previousDB, previousType := DB, common.MainDatabaseType()
+			DB = db
+			common.SetMainDatabaseType(common.DatabaseType(dialect))
+			initCol()
+			t.Cleanup(func() {
+				require.NoError(t, db.Migrator().DropTable(&Channel{}))
+				DB = previousDB
+				common.SetMainDatabaseType(previousType)
+				initCol()
+				require.NoError(t, sqlDB.Close())
+			})
+			// 模拟升级：先建出当前表结构再删掉 created_by 列，写入旧数据后重新迁移；已有渠道归属 0（仅 root 可改）
+			require.NoError(t, db.AutoMigrate(&Channel{}))
+			require.NoError(t, db.Migrator().DropIndex(&Channel{}, "CreatedBy"))
+			require.NoError(t, db.Migrator().DropColumn(&Channel{}, "CreatedBy"))
+			require.False(t, db.Migrator().HasColumn(&Channel{}, "CreatedBy"))
+			legacyTag := "legacy"
+			require.NoError(t, db.Omit("CreatedBy").Create(&Channel{Name: "old", Tag: &legacyTag}).Error)
+			require.NoError(t, db.AutoMigrate(&Channel{}))
+			require.NoError(t, db.AutoMigrate(&Channel{}))
+			require.True(t, db.Migrator().HasColumn(&Channel{}, "CreatedBy"))
+			assert.True(t, db.Migrator().HasIndex(&Channel{}, "CreatedBy"))
+
+			var legacy Channel
+			require.NoError(t, db.Where("name = ?", "old").First(&legacy).Error)
+			assert.Zero(t, legacy.CreatedBy)
+
+			mine, other := "mine", "mixed"
+			channels := []Channel{
+				{Name: "a", CreatedBy: 7, Tag: &mine},
+				{Name: "b", CreatedBy: 7, Tag: &other},
+				{Name: "c", CreatedBy: 8, Tag: &other},
+			}
+			require.NoError(t, db.Create(&channels).Error)
+
+			for _, tc := range []struct {
+				name string
+				ids  []int
+				user int
+				want bool
+			}{
+				{"own channels", []int{channels[0].Id, channels[1].Id}, 7, true},
+				{"duplicate ids", []int{channels[0].Id, channels[0].Id}, 7, true},
+				{"other admin channel", []int{channels[0].Id, channels[2].Id}, 7, false},
+				{"legacy channel", []int{legacy.Id}, 7, false},
+				{"missing channel", []int{channels[0].Id, 99999}, 7, false},
+				{"empty ids", nil, 7, false},
+				{"no user", []int{legacy.Id}, 0, false},
+			} {
+				owned, err := ChannelsOwnedBy(tc.ids, tc.user)
+				require.NoError(t, err, tc.name)
+				assert.Equal(t, tc.want, owned, tc.name)
+			}
+
+			for _, tc := range []struct {
+				tag  string
+				user int
+				want bool
+			}{
+				{"mine", 7, true},
+				{"mixed", 7, false},
+				{"legacy", 7, false},
+				{"absent", 7, false},
+			} {
+				owned, err := ChannelTagOwnedBy(tc.tag, tc.user)
+				require.NoError(t, err, tc.tag)
+				assert.Equal(t, tc.want, owned, tc.tag)
+			}
+		})
+	}
+}

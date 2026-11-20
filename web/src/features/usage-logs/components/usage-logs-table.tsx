@@ -99,13 +99,14 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
   const searchParams = route.useSearch()
   const userId = useAuthStore((state) => state.auth.user?.id)
   const { data: showBillingSource = false } = useQuery({
-    queryKey: ['usage-log-billing-source', isAdmin, userId],
+    queryKey: ['usage-log-billing-source', isRoot, userId],
     enabled: logCategory === 'common' && userId != null,
     queryFn: async () => {
-      if (isAdmin) {
+      // 套餐管理接口仅 root 可访问
+      if (isRoot) {
         const plansResult = await getAdminPlans()
         return shouldShowBillingSource({
-          isAdmin,
+          isAdmin: true,
           plans: plansResult.success ? plansResult.data : undefined,
           subscriptions: undefined,
         })
@@ -113,7 +114,7 @@ export function UsageLogsTable({ logCategory }: UsageLogsTableProps) {
 
       const selfResult = await getSelfSubscriptionFull()
       return shouldShowBillingSource({
-        isAdmin,
+        isAdmin: false,
         plans: undefined,
         subscriptions: selfResult.success
           ? selfResult.data?.subscriptions

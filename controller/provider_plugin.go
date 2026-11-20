@@ -73,7 +73,7 @@ func StartPluginLogin(c *gin.Context) {
 		return
 	}
 	channelID, ok := pluginLoginChannelID(c)
-	if !ok {
+	if !ok || !ensureChannelOwner(c, channelID) {
 		return
 	}
 	var request pluginLoginStartRequest
@@ -96,7 +96,7 @@ func ContinuePluginLogin(c *gin.Context) {
 		return
 	}
 	channelID, ok := pluginLoginChannelID(c)
-	if !ok {
+	if !ok || !ensureChannelOwner(c, channelID) {
 		return
 	}
 	var request pluginLoginContinueRequest
