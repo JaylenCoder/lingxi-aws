@@ -39,14 +39,14 @@ export function TuDetails() {
           <h2>{t('Clear costs, peace of mind.')}</h2>
           <p>
             {t(
-              'Higher cache hits make long conversations cheaper, zero data retention means every request serves only you, and GPT Image renders ideas in 4K.'
+              'Higher cache hits make long conversations cheaper, zero data retention means every request serves only you, and multi-region routing on AWS keeps every call available.'
             )}
           </p>
         </div>
       </header>
       <section
         className='tu-features'
-        aria-label={t('Caching, data security, and image generation')}
+        aria-label={t('Caching, data security, and multi-region availability')}
       >
         <article className='tu-feature tu-reveal'>
           <span className='tu-mono tu-num'>{t('#01 Cache / Cache hits')}</span>
@@ -187,7 +187,7 @@ export function TuDetails() {
           <h3>{t('Zero data retention (ZDR)')}</h3>
           <p>
             {t(
-              'Your prompts and outputs are used only to complete the current request, and this site does not store request or response bodies. Response storage is forcibly disabled when forwarding to Microsoft Azure, and nothing is used for training or secondary analysis.'
+              'Your prompts and outputs are used only to complete the current request, and this site does not store request or response bodies. When forwarding to AWS Bedrock, Amazon Bedrock does not store prompts or outputs, and nothing is used for training or secondary analysis.'
             )}
           </p>
           <figure
@@ -220,7 +220,7 @@ export function TuDetails() {
                 d='M208 40V222M216 40V222M204 40H220M204 222H220'
               />
               <text className='tu-zdr-label' x='212' y='26' textAnchor='middle'>
-                STORE=FALSE
+                NO STORAGE
               </text>
               <g className='tu-dust'>
                 <circle cx='222' cy='78' r='2' />
@@ -256,156 +256,126 @@ export function TuDetails() {
         </article>
         <article className='tu-feature tu-reveal'>
           <span className='tu-mono tu-num'>
-            {t('#03 Image / Image generation')}
+            {t('#03 Region / Multi-region availability')}
           </span>
-          <h3>{t('GPT Image, up to 4K output')}</h3>
+          <h3>{t('Multi-region, always available')}</h3>
           <p>
             {t(
-              'High-quality GPT Image models with output up to 4K resolution. Posters, illustrations, product shots, and design drafts hold up to close inspection in both composition and detail.'
+              'Requests are spread across multiple AWS regions. When one region is throttled or has an outage, traffic automatically fails over to another, so high concurrency stays stable and your work never stops.'
             )}
           </p>
           <figure
-            className='tu-plate tu-plate-image tu-klein'
+            className='tu-plate tu-plate-region tu-klein'
             aria-label={t(
-              'An abstract painting sharpens from blurry to clear, illustrating GPT Image 4K output'
+              'Requests from the gateway fan out to several AWS regions; when one region is throttled, traffic fails over to another'
             )}
           >
+            {/* 网关向多个 AWS 区域分发，us-east-1 被限流后切换到 us-west-2 */}
             <svg
-              className='tu-image-art tu-drift'
+              className='tu-region-art tu-drift'
               viewBox='0 0 640 360'
-              preserveAspectRatio='xMidYMid slice'
               fill='none'
               aria-hidden='true'
             >
-              <defs>
-                <clipPath id='tu-sun-clip'>
-                  <circle cx='430' cy='140' r='92' />
-                </clipPath>
-              </defs>
-              <ellipse
-                className='tu-img-line'
-                cx='430'
-                cy='140'
-                rx='210'
-                ry='44'
-                transform='rotate(-12 430 140)'
-              />
-              <circle className='tu-img-sun' cx='430' cy='140' r='92' />
-              <g className='tu-img-shade' clipPath='url(#tu-sun-clip)'>
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='70'
-                  strokeWidth='6.2'
-                  strokeDasharray='0 7.997'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='85'
-                  strokeWidth='5.6'
-                  strokeDasharray='0 7.971'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='100'
-                  strokeWidth='5.0'
-                  strokeDasharray='0 7.953'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='115'
-                  strokeWidth='4.5'
-                  strokeDasharray='0 8.029'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='130'
-                  strokeWidth='4.0'
-                  strokeDasharray='0 8.008'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='145'
-                  strokeWidth='3.5'
-                  strokeDasharray='0 7.992'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='160'
-                  strokeWidth='3.0'
-                  strokeDasharray='0 7.979'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='175'
-                  strokeWidth='2.6'
-                  strokeDasharray='0 8.026'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='190'
-                  strokeWidth='2.2'
-                  strokeDasharray='0 8.012'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='205'
-                  strokeWidth='1.8'
-                  strokeDasharray='0 8.000'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='220'
-                  strokeWidth='1.4'
-                  strokeDasharray='0 7.990'
-                />
-                <circle
-                  cx='330'
-                  cy='250'
-                  r='235'
-                  strokeWidth='1.0'
-                  strokeDasharray='0 7.981'
-                />
+              <g className='tu-geo'>
+                <ellipse cx='320' cy='170' rx='292' ry='142' />
+                <ellipse cx='320' cy='170' rx='150' ry='142' />
+                <path d='M28 170H612M60 100H580M60 240H580' />
               </g>
-              <circle className='tu-img-cin' cx='350' cy='214' r='32' />
+              <text className='tu-route-label' x='40' y='46'>
+                MULTI-REGION
+              </text>
               <path
-                className='tu-img-arch'
-                d='M44 360V232A94 94 0 0 1 232 232V360Z'
+                className='tu-lane tu-lane-weak'
+                d='M320 272Q270 190 230 100'
               />
-              <path className='tu-img-line' d='M0 270H640' />
-              <g className='tu-img-sea' transform='translate(10 -56)'>
-                <path d='M-20 326.7L0 332L20 337.3L40 339.1L60 337.8L80 336.4L100 336.8L120 337.3L140 335L160 329.7L180 324.8L200 323.7L220 325.9L240 328.4L260 328.9L280 328.9L300 331.3L320 336.3L340 340.5L360 340.8L380 337.5L400 334.2L420 333L440 332.7L460 330.5L480 326.2L500 322.8L520 323.5L540 327.7L560 331.8L580 333.4L600 333.5L620 335.2' />
-                <path d='M-20 349.3L0 352.4L20 351.6L40 349.2L60 348.1L80 348.6L100 347.9L120 344L140 339L160 336.5L180 338.2L200 341.6L220 343.4L240 343.4L260 344.2L280 347.8L300 352.2L320 353.8L340 351.3L360 347L380 344.6L400 344.4L420 343.8L440 340.9L460 337.2L480 336.5L500 339.9L520 344.8L540 347.6L560 347.7L580 347.7L600 349.9L620 352.6' />
-                <path d='M-20 365.3L0 362.5L20 360.1L40 359.8L60 360.1L80 358L100 353.6L120 350.1L140 350.6L160 354.2L180 357.4L200 358.1L220 357.9L240 359.6L260 363.4L280 366.1L300 364.9L320 360.5L340 356.8L360 356L380 356.4L400 355.2L420 352.1L440 350.3L460 352.3L480 357.1L500 361.1L520 361.9L540 361L560 361.4L580 363.6L600 364.7L620 362.2' />
-                <path d='M-20 372.8L0 371.3L20 371.8L40 371.3L60 368.2L80 364.4L100 363.5L120 366.4L140 370.5L160 372.4L180 372L200 372.1L220 374.6L240 377.7L260 378L280 374.4L300 369.9L320 367.8L340 368.4L360 368.8L380 367L400 364.7L420 365.1L440 369.1L460 373.9L480 375.8L500 374.8L520 373.7L540 374.7L560 376.3L580 375.4L600 371.2L620 366.5' />
-                <path d='M-20 383.2L0 383.9L20 382.6L40 379.2L60 377.1L80 378.7L100 383L120 386.1L140 386.3L160 385.3L180 386.2L200 388.9L220 390.4L240 388.2L260 383.6L280 380.3L300 380.3L320 381.8L340 381.6L360 379.6L380 378.6L400 381.2L420 385.9L440 389.1L460 388.7L480 386.7L500 386.1L520 387.5L540 388L560 385.3L580 380.6L600 377.8L620 378.7' />
-                <path d='M-20 396.3L0 394.1L20 391.4L40 391.5L60 395.1L80 399.1L100 400.4L120 399.1L140 398.3L160 399.9L180 402.1L200 401.5L220 397.7L240 393.6L260 392.5L280 394.2L300 395.5L320 394.5L340 392.8L360 393.7L380 397.6L400 401.6L420 402.4L440 400.2L460 398.2L480 398.7L500 400L520 399L540 395.2L560 391.5L580 391.2L600 393.9L620 396.4' />
+              <path className='tu-lane' d='M320 272Q170 250 110 150' />
+              <path className='tu-lane' d='M320 272Q360 180 380 90' />
+              <path className='tu-lane' d='M320 272Q470 250 540 130' />
+              <path className='tu-lane' d='M320 272Q420 270 500 220' />
+              <path
+                className='tu-runner'
+                pathLength='100'
+                d='M320 272Q170 250 110 150'
+              />
+              <path
+                className='tu-runner'
+                pathLength='100'
+                d='M320 272Q360 180 380 90'
+              />
+              <path
+                className='tu-runner'
+                pathLength='100'
+                d='M320 272Q470 250 540 130'
+              />
+              <path
+                className='tu-runner'
+                pathLength='100'
+                d='M320 272Q420 270 500 220'
+              />
+              <path className='tu-failover' d='M222 102Q150 96 118 142' />
+              <g className='tu-regions'>
+                <circle cx='110' cy='150' r='7' />
+                <circle cx='380' cy='90' r='7' />
+                <circle cx='540' cy='130' r='7' />
+                <circle cx='500' cy='220' r='7' />
               </g>
-              <g className='tu-img-stars'>
-                <circle cx='96' cy='58' r='2' />
-                <circle cx='178' cy='112' r='1.4' />
-                <circle cx='246' cy='40' r='1.8' />
-                <circle cx='588' cy='56' r='1.4' />
-                <circle cx='610' cy='210' r='2' />
+              <g className='tu-region-down'>
+                <circle cx='230' cy='100' r='7' />
+                <path d='M223 93L237 107M237 93L223 107' />
               </g>
+              <text className='tu-region-code' x='246' y='105'>
+                429
+              </text>
+              <text className='tu-route-note' x='98' y='154' textAnchor='end'>
+                us-west-2
+              </text>
+              <text
+                className='tu-route-note'
+                x='230'
+                y='82'
+                textAnchor='middle'
+              >
+                us-east-1
+              </text>
+              <text
+                className='tu-route-note'
+                x='380'
+                y='72'
+                textAnchor='middle'
+              >
+                eu-central-1
+              </text>
+              <text
+                className='tu-route-note'
+                x='540'
+                y='112'
+                textAnchor='middle'
+              >
+                ap-northeast-1
+              </text>
+              <text
+                className='tu-route-note'
+                x='514'
+                y='224'
+                textAnchor='start'
+              >
+                ap-southeast-1
+              </text>
+              <circle className='tu-end-ring' cx='320' cy='272' r='22' />
+              <circle className='tu-end' cx='320' cy='272' r='13' />
+              <text
+                className='tu-route-note'
+                x='320'
+                y='314'
+                textAnchor='middle'
+              >
+                GATEWAY
+              </text>
             </svg>
-            <div className='tu-lowres' aria-hidden='true' />
-            <span className='tu-scanline' aria-hidden='true'>
-              <b className='tu-mono'>4K</b>
-            </span>
             <figcaption className='tu-plate-cap tu-mono'>
-              <span>Fig. 4 — GPT Image</span>
-              <span>Up to 4K</span>
+              <span>{t('Fig. 4 — Multi-region failover')}</span>
+              <span>AWS regions</span>
             </figcaption>
           </figure>
         </article>
@@ -416,13 +386,13 @@ export function TuDetails() {
           <h3>{t('Full power, never dumbed down')}</h3>
           <p>
             {t(
-              "We don't use an account pool — we connect directly to the official Microsoft Azure API. Requests never go through subscription accounts, so they are never throttled or downgraded by account risk controls, and every call gets full capability."
+              "We don't use an account pool — we connect directly to the official AWS Bedrock API. Requests never go through subscription accounts, so they are never throttled or downgraded by account risk controls, and every call gets full capability."
             )}
           </p>
           <figure
             className='tu-plate tu-plate-route tu-klein'
             aria-label={t(
-              'Comparison: the account-pool route is degraded after passing through pooled accounts and risk control; the direct route reaches the Microsoft Azure API at full power'
+              'Comparison: the account-pool route is degraded after passing through pooled accounts and risk control; the direct route reaches the AWS Bedrock API at full power'
             )}
           >
             <svg
@@ -518,7 +488,7 @@ export function TuDetails() {
                   y='316'
                   textAnchor='middle'
                 >
-                  MICROSOFT AZURE API
+                  AWS BEDROCK API
                 </text>
                 <circle className='tu-node' cx='64' cy='252' r='9' />
                 <text
@@ -545,10 +515,10 @@ export function TuDetails() {
           <span className='tu-mono tu-num'>
             {t('#05 Source / Model source')}
           </span>
-          <h3>{t('Microsoft Azure upstream')}</h3>
+          <h3>{t('AWS Bedrock upstream')}</h3>
           <p>
             {t(
-              'Clear and reliable. All OpenAI models come from the official cloud upstream, so you always know where your model comes from.'
+              'Clear and reliable. All Claude models come from the official AWS cloud upstream, so you always know where your model comes from.'
             )}
           </p>
         </article>

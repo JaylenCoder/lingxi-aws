@@ -45,7 +45,7 @@ export function TuHero() {
       <div className='tu-wrap'>
         <div className='tu-hero-meta tu-mono'>
           <span>Nº 01 — {brand}</span>
-          <span>OpenAI models · Full capability</span>
+          <span>Claude models · Full capability</span>
         </div>
         <div className='tu-hero-body'>
           <div className='tu-hero-copy tu-par'>
@@ -60,7 +60,7 @@ export function TuHero() {
             <p className='tu-coda'>— {brand}.</p>
             <p className='tu-lead'>
               {t(
-                'OpenAI models served from Microsoft Azure. Full capabilities intact, so every serious question can afford a good model.'
+                'Claude models served from Amazon Web Services (AWS Bedrock). Full capabilities intact, so every serious question can afford a good model.'
               )}
             </p>
             <div className='tu-actions'>

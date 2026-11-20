@@ -1,4 +1,8 @@
-name: Publish Docker image (manual branch)
+name: Publish lingxi-aws Docker image (manual branch)
+
+# 镜像固定发布为 ghcr.io/<owner>/lingxi-aws，与仓库名解耦
+env:
+  IMAGE_NAME: lingxi-aws
 
 on:
   workflow_dispatch:
@@ -37,7 +41,7 @@ jobs:
           fi
           VERSION="${TAG_PREFIX}-$(date +'%Y%m%d')-$(git rev-parse --short HEAD)"
           echo "$VERSION" > VERSION
-          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY}" | tr '[:upper:]' '[:lower:]')"
+          IMAGE="ghcr.io/$(echo "${GITHUB_REPOSITORY_OWNER}" | tr '[:upper:]' '[:lower:]')/${IMAGE_NAME}"
           echo "image=${IMAGE}" >> "$GITHUB_OUTPUT"
           echo "tag_prefix=${TAG_PREFIX}" >> "$GITHUB_OUTPUT"
           echo "version=${VERSION}" >> "$GITHUB_OUTPUT"
